@@ -29,7 +29,7 @@ function createPNG(width, height, drawFn) {
   const deflated = zlib.deflateSync(scanlines, { level: 9 });
 
   // PNG Signature
-  const signature = Buffer.from([137, 80, 78, 72, 13, 10, 26, 10]);
+  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
   // CRC32 table
   const crcTable = new Uint32Array(256);
