@@ -29,6 +29,8 @@ import { LevelUpModal } from './components/LevelUpModal';
 import { SettingsModal } from './components/SettingsModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
 
+const QUEST_XP = 25;
+
 export default function App() {
   const [state, setState] = useState<LifeRPGState>(() => loadStoredState());
   const [activeTab, setActiveTab] = useState<'quests' | 'stats' | 'achievements' | 'settings'>('quests');
@@ -67,6 +69,24 @@ export default function App() {
 
   const soundOn = state.settings.soundEffects;
 
+  useEffect(() => {
+    const check = () => {
+      if (!state.settings.dailyReminder || !('Notification' in window) || Notification.permission !== 'granted') return;
+      const now = new Date();
+      const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      state.quests.filter(q => q.startTime === time && !q.completed).forEach(q => {
+        const key = `life-rpg-notified-${state.lastActiveDate}-${q.id}`;
+        if (!sessionStorage.getItem(key)) {
+          new Notification(`Quest start: ${q.title}`, { body: 'Your scheduled quest is ready.', icon: '/pwa-192x192.png' });
+          sessionStorage.setItem(key, '1');
+        }
+      });
+    };
+    check();
+    const timer = window.setInterval(check, 30000);
+    return () => window.clearInterval(timer);
+  }, [state.quests, state.settings.dailyReminder, state.lastActiveDate]);
+
   // Toggle Quest Complete / Incomplete
   const handleToggleQuest = (questId: string) => {
     const quest = state.quests.find(q => q.id === questId);
@@ -82,9 +102,9 @@ export default function App() {
     let newLogs = [...state.completedLogs];
 
     if (isCompleting) {
-      // Award XP exactly once
-      newLifetimeXP += quest.xp;
-      newDailyXP += quest.xp;
+      if (newLogs.some(log => log.questId === quest.id && log.date === todayStr)) return;
+      newLifetimeXP += QUEST_XP;
+      newDailyXP += QUEST_XP;
 
       const logEntry: CompletedLogEntry = {
         id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -92,7 +112,7 @@ export default function App() {
         questTitle: quest.title,
         category: quest.category,
         discipline: quest.discipline,
-        xp: quest.xp,
+        xp: QUEST_XP,
         completedAt: nowIso,
         date: todayStr,
       };
@@ -101,8 +121,8 @@ export default function App() {
       playQuestCompleteSound(soundOn);
     } else {
       // Reverse XP
-      newLifetimeXP = Math.max(0, newLifetimeXP - quest.xp);
-      newDailyXP = Math.max(0, newDailyXP - quest.xp);
+      newLifetimeXP = Math.max(0, newLifetimeXP - QUEST_XP);
+      newDailyXP = Math.max(0, newDailyXP - QUEST_XP);
 
       // Remove from logs (most recent completion of this quest)
       const lastIndex = newLogs.map(l => l.questId).lastIndexOf(quest.id);
@@ -167,6 +187,7 @@ export default function App() {
     xp: number;
     category: QuestCategory;
     discipline?: any;
+    startTime?: string;
     saveAsTemplate?: boolean;
   }) => {
     playButtonTapSound(soundOn);
@@ -178,7 +199,7 @@ export default function App() {
         id: `template-${Date.now()}`,
         title: questData.title,
         description: questData.description,
-        xp: questData.xp,
+        xp: QUEST_XP,
         category: questData.category,
         discipline: questData.discipline,
       };
@@ -196,7 +217,8 @@ export default function App() {
               ...q,
               title: questData.title,
               description: questData.description,
-              xp: questData.xp,
+              xp: QUEST_XP,
+              startTime: questData.startTime,
               category: questData.category,
               discipline: questData.discipline,
             };
@@ -236,8 +258,8 @@ export default function App() {
       let newLifetimeXP = state.lifetimeXP;
       let newDailyXP = state.dailyXPEarned;
       if (quest.completed) {
-        newLifetimeXP = Math.max(0, newLifetimeXP - quest.xp);
-        newDailyXP = Math.max(0, newDailyXP - quest.xp);
+      newLifetimeXP = Math.max(0, newLifetimeXP - QUEST_XP);
+      newDailyXP = Math.max(0, newDailyXP - QUEST_XP);
       }
 
       setState(prev => ({
@@ -256,7 +278,7 @@ export default function App() {
       id: `tmpl-${Date.now()}`,
       title: quest.title,
       description: quest.description,
-      xp: quest.xp,
+      xp: QUEST_XP,
       category: quest.category,
       discipline: quest.discipline,
     };
@@ -274,7 +296,7 @@ export default function App() {
       id: `quest-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       title: tmpl.title,
       description: tmpl.description,
-      xp: tmpl.xp,
+      xp: QUEST_XP,
       category: tmpl.category,
       discipline: tmpl.discipline,
       completed: false,
@@ -289,12 +311,12 @@ export default function App() {
   // Use all daily templates at once
   const handleUseAllDailyTemplates = () => {
     playButtonTapSound(soundOn);
-    const dailyTemplates = state.templates.filter(t => t.category === 'daily');
+    const dailyTemplates = state.templates.filter(t => t.category === 'daily').slice(0, 5);
     const newQuests: Quest[] = dailyTemplates.map(tmpl => ({
       id: `quest-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       title: tmpl.title,
       description: tmpl.description,
-      xp: tmpl.xp,
+      xp: QUEST_XP,
       category: 'daily',
       discipline: tmpl.discipline,
       completed: false,

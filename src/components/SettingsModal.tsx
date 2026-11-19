@@ -237,6 +237,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {notificationTestStatus && (
                 <p className="text-[11px] text-cyan-400 pt-1">{notificationTestStatus}</p>
               )}
+              <label className="flex items-center justify-between pt-2 text-xs text-slate-300">
+                <span>Daily Quest Mode (exactly 5 quests)</span>
+                <input type="checkbox" checked={settings.dailyQuestMode} onChange={(e) => onUpdateSettings({ dailyQuestMode: e.target.checked })} />
+              </label>
             </div>
           </div>
 

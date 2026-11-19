@@ -14,6 +14,7 @@ export interface Quest {
   isDefault?: boolean;
   createdAt: string; // ISO timestamp
   dateFor?: string; // Date or period string (e.g. 'YYYY-MM-DD' for daily)
+  startTime?: string;
 }
 
 export interface QuestTemplate {
@@ -62,6 +63,7 @@ export interface AppSettings {
   soundEffects: boolean;
   hapticFeedback: boolean;
   dailyReminder: boolean;
+  dailyQuestMode: boolean;
   reminderTime: string;
   playerName: string;
 }
