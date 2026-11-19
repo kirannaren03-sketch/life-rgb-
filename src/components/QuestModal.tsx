@@ -10,6 +10,7 @@ interface QuestModalProps {
     title: string;
     description?: string;
     xp: number;
+    startTime?: string;
     category: QuestCategory;
     discipline?: QuestDiscipline;
     saveAsTemplate?: boolean;
@@ -57,6 +58,7 @@ export const QuestModal: React.FC<QuestModalProps> = ({
   const [xp, setXp] = useState<number>(20);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [customXpMode, setCustomXpMode] = useState(false);
+  const [startTime, setStartTime] = useState('');
 
   useEffect(() => {
     if (initialQuest) {
@@ -65,6 +67,7 @@ export const QuestModal: React.FC<QuestModalProps> = ({
       setCategory(initialQuest.category);
       setDiscipline(initialQuest.discipline || 'study');
       setXp(initialQuest.xp);
+      setStartTime(initialQuest.startTime || '');
       setSaveAsTemplate(false);
       const presets = XP_PRESETS[initialQuest.category] || XP_PRESETS.daily;
       setCustomXpMode(!presets.includes(initialQuest.xp));
@@ -75,6 +78,7 @@ export const QuestModal: React.FC<QuestModalProps> = ({
       setDiscipline('study');
       const defaultXp = defaultCategory === 'main' ? 200 : defaultCategory === 'monthly' ? 150 : defaultCategory === 'weekly' ? 60 : 20;
       setXp(defaultXp);
+      setStartTime('');
       setSaveAsTemplate(false);
       setCustomXpMode(false);
     }
@@ -92,9 +96,10 @@ export const QuestModal: React.FC<QuestModalProps> = ({
       id: initialQuest?.id,
       title: title.trim(),
       description: description.trim() || undefined,
-      xp: Math.max(5, Math.min(2000, xp || 20)),
+      xp: 25,
       category,
       discipline,
+      startTime: startTime || undefined,
       saveAsTemplate,
     });
     onClose();
@@ -206,6 +211,11 @@ export const QuestModal: React.FC<QuestModalProps> = ({
                 </button>
               ))}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5">Start-time notification <span className="text-slate-500">(Optional)</span></label>
+            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-slate-100 focus:outline-none focus:border-cyan-500" />
           </div>
 
           {/* XP Rewards */}

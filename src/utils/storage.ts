@@ -67,6 +67,7 @@ export function getInitialState(): LifeRPGState {
       soundEffects: true,
       hapticFeedback: true,
       dailyReminder: false,
+      dailyQuestMode: false,
       reminderTime: '20:00',
       playerName: 'Player One',
     },
@@ -102,6 +103,7 @@ export function loadStoredState(): LifeRPGState {
         const isOldCategory = !validCategories.includes(q.category);
         return {
           ...q,
+          xp: 25,
           category: isOldCategory ? 'daily' : q.category,
           discipline: q.discipline || (isOldCategory ? q.category : 'study'),
         };
@@ -111,7 +113,7 @@ export function loadStoredState(): LifeRPGState {
     }
 
     const templates: QuestTemplate[] = Array.isArray(parsed.templates) && parsed.templates.length > 0
-      ? parsed.templates
+      ? parsed.templates.map((t: QuestTemplate) => ({ ...t, xp: 25 }))
       : DEFAULT_TEMPLATES.map(t => ({ ...t }));
 
     const playerName = parsed.settings?.playerName || parsed.playerName || 'Player One';
@@ -140,6 +142,7 @@ export function loadStoredState(): LifeRPGState {
         soundEffects: parsed.settings?.soundEffects ?? true,
         hapticFeedback: parsed.settings?.hapticFeedback ?? true,
         dailyReminder: parsed.settings?.dailyReminder ?? false,
+        dailyQuestMode: parsed.settings?.dailyQuestMode ?? false,
         reminderTime: parsed.settings?.reminderTime ?? '20:00',
         playerName,
       },
@@ -243,6 +246,19 @@ export function checkAndHandleDateTransition(
     // Remove old daily quests from the active list so that daily quests start empty for the new day
     // (User can load from templates or add custom daily quests manually).
     updatedQuests = updatedQuests.filter(q => q.category !== 'daily');
+    if (state.settings.dailyQuestMode) {
+      const dailyTemplates = templatesForDaily(state.templates);
+      updatedQuests.push(...dailyTemplates.map((t, index) => ({
+        id: `daily-${today}-${index}`,
+        title: t.title,
+        description: t.description,
+        xp: 25,
+        category: 'daily' as const,
+        discipline: t.discipline,
+        completed: false,
+        createdAt: new Date().toISOString(),
+      })));
+    }
 
     // Reset daily XP earned
     dailyXPEarned = 0;
@@ -294,6 +310,10 @@ export function checkAndHandleDateTransition(
 
   saveStoredState(updatedState);
   return updatedState;
+}
+
+function templatesForDaily(templates: QuestTemplate[]): QuestTemplate[] {
+  return templates.filter(t => t.category === 'daily').slice(0, 5);
 }
 
 export function evaluateAchievements(state: LifeRPGState): {
